@@ -3,27 +3,27 @@
  * @Description //TODO
  * @Date 2021/11/29 9:39 下午
  **/
-package main
+package demo01
 
 import (
 	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"go-practice/go_mysql/go2gorm/util"
 	"log"
 )
 
-//连接实例
-func Conn(user, password, host, db, port string) *gorm.DB {
-	connArgs := fmt.Sprintf("%s:%s@(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local", user, password, host, port, db)
-	db_instance, err := gorm.Open("mysql", connArgs)
-	if err != nil {
-		log.Fatalf("连接mysql err:", err)
-	}
-	db_instance.SingularTable(true)
-	return db_instance
-}
+const (
+	TableName = "student"
+	User      = "root"
+	Password  = "Liuxu!99454"
+	Host      = "127.0.0.1"
+	Port      = "3306"
+	Db_Name   = "test"
+)
 
 //表结构体
+
 type XzAutoServerConf struct {
 	Id         string `gorm:"column:id"`
 	GroupZone  string `gorm:"column:group_zone"`
@@ -34,23 +34,34 @@ type XzAutoServerConf struct {
 	Username   string `gorm:"coloumn:username"`
 }
 
+type Student struct {
+	Name string `gorm:"column:name"`
+	Age  int    `gorm:"column:age"`
+	Sex  string `gorm:"column:sex"`
+	High int    `gorm:"column:high"`
+}
+
 func main() {
-	user := "root"
-	password := "Liuxu!99454"
-	host := "127.0.0.1"
-	port := "3306"
-	db_name := "test"
-	db := Conn(user, password, host, db_name, port)
+	fmt.Println(User)
+	dbset := util.DatabaseSetting{
+		DBName:   Db_Name,
+		UserName: User,
+		Password: Password,
+		Port:     Port,
+		Host:     Host,
+	}
+	db := util.Coon(&dbset)
 	db.LogMode(true)
 	defer db.Close()
-	//insert_data(db)
-	groupby_data(db)
+	data := &Student{Name: "jason", Age: 20, Sex: "男", High: 10}
+
+	insert_data(db, data)
+	//sql_test(db)
 
 }
 
-func insert_data(db *gorm.DB) {
-	add_data := XzAutoServerConf{GroupZone: "26", ServerId: 10, ServerName: "abc", Username: "aaaaaaa", Status: 26}
-	create := db.Create(&add_data)
+func insert_data(db *gorm.DB, data *Student) {
+	create := db.Create(data)
 	if create.Error != nil {
 		log.Fatal(create.Error)
 	}
@@ -83,7 +94,7 @@ func order_data(db *gorm.DB) {
 //封装对象必须大小写
 type Result struct {
 	Group_Zone string
-	Num_        int64
+	Num_       int64
 }
 
 func groupby_data(db *gorm.DB) {
@@ -96,5 +107,14 @@ func update_data(db *gorm.DB) {
 	err := db.Model(&rows).Where("status=?", 26).Update("group_zone", 26).Error
 	if err != nil {
 		log.Fatal(err)
+	}
+}
+
+func sql_test(db *gorm.DB) {
+	var rows []XzAutoServerConf
+	//输入 表中的字段
+	db.Raw("select  group_zone ,server_id,server_name,status ,username from xz_auto_server_conf where group_zone=?", "26").Scan(&rows)
+	for k, v := range rows {
+		fmt.Println(k, v)
 	}
 }
